@@ -15,3 +15,6 @@ This project is inspired by the following papers:
 
 
 To run the model, install the dataset from the link above and decompress the images folder. Then add the paths required in the respective training, validation and utils scripts. The vocabulary and json files have already been provided.
+
+
+The required libraries are: torch, torchvision, pillow, nltk.
