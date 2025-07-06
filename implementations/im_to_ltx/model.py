@@ -184,4 +184,27 @@ class ImageToLatexModel(nn.Module):
         logits = self.decoder(encoder_output, tgt_seq)  # (B, T, vocab_size)
         return logits
     
+"""
+if __name__ == "__main__":
+    vocab_size = 495 
+
+    model = ImageToLatexModel(
+        vocab_size=vocab_size,
+        embed_dim=32,
+        hidden_dim=512,
+        feature_dim=512,
+        attn_dim=256,
+        dropout=0.4
+    )
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Total parameters: {total_params:,}")
+    print(f"Trainable parameters: {trainable_params:,}")
+    print("\nParameter breakdown by layer:")
+    for name, param in model.named_parameters():
+        print(f"{name:60} {param.numel():>10}")
+"""
+    
 __all__ = ["ImageToLatexModel"]
+
+
