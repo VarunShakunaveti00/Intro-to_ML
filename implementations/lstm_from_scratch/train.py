@@ -199,10 +199,7 @@ for epoch in range(num_epochs):
 
     avg_epoch_loss = total_loss / (len(train_inputs) * (context_size // chunk_size))
     print(f"Epoch {epoch+1}/{num_epochs}, Avg Epoch Loss: {avg_epoch_loss:.4f}")
-    
-    
-    
-    import numpy as np
+
 
 def generate_text(W, E, word_to_idx, idx_to_word, seed_text, num_to_generate):
     hidden_dim = W['bf'].shape[0]
