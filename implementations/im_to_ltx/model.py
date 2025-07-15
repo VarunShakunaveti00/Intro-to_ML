@@ -184,7 +184,7 @@ class ImageToLatexModel(nn.Module):
         logits = self.decoder(encoder_output, tgt_seq)  # (B, T, vocab_size)
         return logits
     
-"""
+
 if __name__ == "__main__":
     vocab_size = 495 
 
@@ -203,7 +203,6 @@ if __name__ == "__main__":
     print("\nParameter breakdown by layer:")
     for name, param in model.named_parameters():
         print(f"{name:60} {param.numel():>10}")
-"""
     
 __all__ = ["ImageToLatexModel"]
 
