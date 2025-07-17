@@ -41,7 +41,6 @@ Image adjustBrightness(const Image &image, int amount){
 }
 
 Image adjustContrast(const Image &image, double factor){
-    // new point is (point-128)*factor + 128
     ImageType t = image.getType();
     int width = image.getWidth();
     int height = image.getHeight();
@@ -61,11 +60,11 @@ Image adjustContrast(const Image &image, double factor){
             for(int j = 0; j < width; j++){
                 std::array<unsigned char, 3> pixel = result.getRGB(j,i);
                 double newR = factor*(pixel[0]-128.) + 128.;
-                newR = std::min(0., std::max(255., newR));
+                newR = std::max(0., std::min(255., newR));
                 double newG = factor*(pixel[1]-128.) + 128.;
-                newG = std::min(0., std::max(255., newG));
+                newG = std::max(0., std::min(255., newG));
                 double newB = factor*(pixel[2]-128.) + 128.;
-                newB = std::min(0., std::max(255., newB));
+                newB = std::max(0., std::min(255., newB));
                 result.setRGB(j, i, {
                     static_cast<unsigned char>(newR),
                     static_cast<unsigned char>(newG),
@@ -268,56 +267,50 @@ Image threshold(Image &image){
     int width = image.getWidth();
     int height = image.getHeight();
     Image result = image;
-    ImageType t = image.getType();
     result.toGreyScale();
-    std::vector<int>histogram = result.create_histogram();
-    std::vector<double>cdf(256, 0.);
-    double sum = 0.;
-    for(int i = 0;i < 256; i++){
-        sum+= static_cast<double>(histogram[i]);
-        cdf[i] = sum/(height*width);
+    
+    std::vector<int> histogram = result.create_histogram();
+    
+    double total_sum = 0.0;
+    for(int i = 0; i < 256; i++){
+        total_sum += (double)(i * histogram[i]);
     }
-    double total_sum = 0.;
-    for(int i = 0;i < 256; i++){
-        total_sum +=  (double)(i*histogram[i]);
-    }
-
-    double background_sum = 0.;
-    double foreground_sum = 0.;
+    
+    double background_sum = 0.0;
     int background_weight = 0;
-
-    double variance = 0.;
+    double max_variance = 0.0;
     int best_thr = 0;
-    for (int t = 0; t < 256; ++t) {
-
-        background_weight += histogram[t];
+    
+    for (int threshold = 0; threshold < 256; ++threshold) {
+        background_weight += histogram[threshold];
         if (background_weight == 0) continue;
-
-        int foreground_weight = width*height - background_weight;
+        
+        int foreground_weight = width * height - background_weight;
         if (foreground_weight == 0) break;
-        background_sum += (double)(t * histogram[t]);
-
+        
+        background_sum += (double)(threshold * histogram[threshold]);
         double background_mean = background_sum / background_weight;
         double foreground_mean = (total_sum - background_sum) / foreground_weight;
         
         double variance_between = (double)background_weight * (double)foreground_weight *
-                                  (background_mean - foreground_mean) * (background_mean - foreground_mean);
-
-        if (variance_between > variance) {
-            variance = variance_between;
-            best_thr = t;
+            (background_mean - foreground_mean) * (background_mean - foreground_mean);
+        
+        if (variance_between > max_variance) {
+            max_variance = variance_between;
+            best_thr = threshold;
         }
     }
-    for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
-            if (result.getGrey(i, j) > best_thr) {
-                result.setGrey(i, j, 255);
+    
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (result.getGrey(j, i) > best_thr) {
+                result.setGrey(j, i, 255);
             } else {
-                result.setGrey(i, j, 0);
+                result.setGrey(j, i, 0);
             }
         }
     }
-
+    
     return result;
 }
 
@@ -392,46 +385,40 @@ Image distanceTransform(const Image &image){
     int width = image.getWidth();
     int height = image.getHeight();
     ImageType t = image.getType();
-    if(t!= ImageType::GREYSCALE) throw std::logic_error("Only for binary images");
-    std::vector<std::vector<double>>dist(height, std::vector<double>(width, 0.));
-    const double max_val = (double)width*height;
+    if(t != ImageType::GREYSCALE) throw std::logic_error("Only for binary images");
+    
+    std::vector<std::vector<double>> dist(height, std::vector<double>(width, 0.0));
+    const double max_val = (double)width * height;
     
     for(int i = 0; i < height; i++){
         for(int j = 0; j < width; j++){
-            if(image.getGrey(j, i)==255) dist[i][j] = max_val;
+            if(image.getGrey(j, i) == 0) {
+                dist[i][j] = 0.0;
+            } else {
+                dist[i][j] = max_val;
+            }
         }
     }
 
     for(int i = 0; i < height; i++){
-        for(int j =0; j < width; j++){
-            if(i > 0) dist[i][j] = std::min(dist[i-1][j]+1, dist[i][j]);
-            if(j > 0) dist[i][j] = std::min(dist[i][j], 1+dist[i][j-1]);
+        for(int j = 0; j < width; j++){
+            if(i > 0) dist[i][j] = std::min(dist[i][j], dist[i-1][j] + 1);
+            if(j > 0) dist[i][j] = std::min(dist[i][j], dist[i][j-1] + 1);
         }
     }
 
     for(int i = height - 1; i >= 0; i--){
         for(int j = width - 1; j >= 0; j--){
-            if(i < height - 1) dist[i][j] =  std::min(dist[i+1][j]+1, dist[i][j]);
-            if(j < width - 1) dist[i][j] = std::min(dist[i][j+1]+1, dist[i][j]);
+            if(i < height - 1) dist[i][j] = std::min(dist[i][j], dist[i+1][j] + 1);
+            if(j < width - 1) dist[i][j] = std::min(dist[i][j], dist[i][j+1] + 1);
         }
     }
 
     Image result(width, height, ImageType::GREYSCALE);
-    double max_dist = 0;
-    for (const auto& row : dist) {
-        for (double val : row) {
-            if (val > max_dist && val < max_val) {
-                max_dist = val;
-            }
-        }
-    }
-
-    if (max_dist > 0) {
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                unsigned char normalized_val = static_cast<unsigned char>((dist[i][j] / max_dist) * 255.0f);
-                result.setGrey(j, i, normalized_val);
-            }
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            unsigned char val = static_cast<unsigned char>(std::min(255.0, dist[i][j]));
+            result.setGrey(j, i, val);
         }
     }
     
@@ -448,6 +435,8 @@ Image connectedComponents(const Image &binaryImage) {
 
     int dx[] = {1, -1, 0, 0, 1, -1, 1, -1};
     int dy[] = {0, 0, -1, 1, 1, -1, -1, 1};
+    //int dx[] = {1, -1, 0, 0};
+    //int dy[] = {0, 0, -1, 1};
 
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
@@ -459,7 +448,9 @@ Image connectedComponents(const Image &binaryImage) {
                 while (!q.empty()) {
                     auto [x, y] = q.front();
                     q.pop();
-                    labeledImage.setGrey(x, y, static_cast<unsigned char>(currentLabel)); 
+                    
+                    unsigned char label = (currentLabel > 255) ? 255 : static_cast<unsigned char>(currentLabel);
+                    labeledImage.setGrey(x, y, label); 
 
                     for (int k = 0; k < 8; ++k) {
                         int nx = x + dx[k];
@@ -490,32 +481,42 @@ Image findMarkers(const Image &distanceMap, double threshold_factor){
         }
     }
 
-    unsigned char thrsld = static_cast<unsigned char>(max_dist * threshold_factor);
-
+    unsigned char threshold;
+    if (max_dist <= 3) {
+        threshold = 1;
+    } else {
+        threshold = static_cast<unsigned char>(std::max(1.0, max_dist * threshold_factor));
+    }
+    
     Image binaryMarkers(width, height, ImageType::GREYSCALE);
     for(int i = 0; i < height; i++){
         for(int j = 0; j < width; j++){
-            if(distanceMap.getGrey(j, i) > thrsld) {
+            if(distanceMap.getGrey(j, i) >= threshold) {
                 binaryMarkers.setGrey(j, i, 255);
             } else {
                 binaryMarkers.setGrey(j, i, 0);
             }
         }
     }
-
-    return connectedComponents(binaryMarkers);
+    
+    Image components = connectedComponents(binaryMarkers);
+    
+    return components;
 }  
 
 Image watershed(const Image &image, Image &markedImage){
     int width = image.getWidth();
     int height = image.getHeight();
-    if(image.getType()!= ImageType::GREYSCALE || markedImage.getType()!=ImageType::GREYSCALE){
-        throw std::logic_error("both should be binary only");
+    if(image.getType() != ImageType::GREYSCALE || markedImage.getType() != ImageType::GREYSCALE){
+        throw std::logic_error("Both should be grayscale only");
     }
+    
     std::priority_queue<std::tuple<int,int,int>, std::vector<std::tuple<int,int,int>>, std::greater<>>q;
 
-    int dx[] = {1,-1, 0, 0, 1, -1, 1, -1};
+    int dx[] = {1, -1, 0, 0, 1, -1, 1, -1};
     int dy[] = {0, 0, -1, 1, 1, -1, -1, 1};
+    //int dx[] = {1, -1, 0, 0};
+    //int dy[] = {0, 0, -1, 1};
 
     Image segmentationResult(width, height, ImageType::GREYSCALE);
 
@@ -523,25 +524,23 @@ Image watershed(const Image &image, Image &markedImage){
         for(int j = 0; j < width; j++){
             unsigned char marker_label = markedImage.getGrey(j, i);
             if(marker_label > 0){
-                q.push({image.getGrey(j, i), j, i});
+                q.push({-static_cast<int>(image.getGrey(j, i)), j, i});
                 segmentationResult.setGrey(j, i, marker_label);
             }
         }
     }
     
     while(!q.empty()){
-        auto [brightness, x, y] = q.top(); 
+        auto [neg_intensity, x, y] = q.top(); 
         q.pop();
-
         unsigned char current_label = segmentationResult.getGrey(x, y);
-
         for(int i = 0; i < 8; i++){
             int nx = x + dx[i];
             int ny = y + dy[i];
-            if(nx>=0&&nx<width && ny>=0&&ny<height){
-                if(segmentationResult.getGrey(nx,ny)==0){
+            if(nx >= 0 && nx < width && ny >= 0 && ny < height){
+                if(segmentationResult.getGrey(nx, ny) == 0){
                     segmentationResult.setGrey(nx, ny, current_label);
-                    q.push({image.getGrey(nx, ny), nx, ny});
+                    q.push({-static_cast<int>(image.getGrey(nx, ny)), nx, ny});
                 }
             }
         }
@@ -553,24 +552,19 @@ Image watershed(const Image &image, Image &markedImage){
 Image instanceSegment(Image &image){
     int width = image.getWidth();
     int height = image.getHeight();
-
     Image temp = image;
     temp.toGreyScale(); 
-
     Image binaryImage = threshold(temp);
     Opening(binaryImage);
-
+    Closing(binaryImage);
     Image distance_map = distanceTransform(binaryImage);
-    
-    Image markedImage = findMarkers(distance_map);
-
+    Image markedImage = findMarkers(distance_map, 0.1);
     Image watershed_input(width, height, ImageType::GREYSCALE);
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
-            watershed_input.setGrey(j, i, 255 - distance_map.getGrey(j, i));
+            watershed_input.setGrey(j, i, 255-distance_map.getGrey(j, i));
         }
     }
-    
     Image segmentedImage = watershed(watershed_input, markedImage);
     return segmentedImage;
 }

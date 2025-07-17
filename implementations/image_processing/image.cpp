@@ -68,7 +68,7 @@ ImageType Image::getType() const {return type;}
 unsigned char Image::getGrey(int x, int y) const{
     if (x < 0 || y < 0 || x >= width || y >= height) throw std::out_of_range("Pixel coordinates out of bounds");
     if(type != ImageType::GREYSCALE) throw std::logic_error("types doesnt match");
-    return greyData[y*width+x];
+    return greyData[y*width + x];
 }
 
 std::array<unsigned char, 3> Image::getRGB(int x, int y) const{
