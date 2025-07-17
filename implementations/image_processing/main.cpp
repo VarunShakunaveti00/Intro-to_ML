@@ -86,9 +86,7 @@ int main() {
     const std::vector<std::string> inputFilenames = {
         "image1.ppm",
         "image2.ppm",
-        "image3.ppm",
-        "image4.ppm",
-        "image5.ppm"
+        "image3.ppm"
     };
 
     std::cout << "--- Starting Batch Instance Segmentation ---" << std::endl;
@@ -113,26 +111,26 @@ int main() {
             // Enhance segmentation visibility
             Image enhancedSegmentedImage = enhanceSegmentationVisibility(segmentedImage);
 
-            // Create a unique output filename for the segmented image
-            // e.g., "image1.ppm" -> "segmented_image1.pgm"
+            //Create a unique output filename for the segmented image
+            //e.g., "image1.ppm" -> "segmented_image1.pgm"
             std::string outputFilename = "segmented_" + inputFilename;
             size_t dot_pos = outputFilename.rfind('.');
             if (dot_pos != std::string::npos) {
-                outputFilename.replace(dot_pos, outputFilename.length(), ".pgm");
+               outputFilename.replace(dot_pos, outputFilename.length(), ".pgm");
             } else {
                 outputFilename += ".pgm";
             }
 
             // Display histogram of segmented image
-            std::cout << "\n=== Histogram Analysis of Original Segmented Image ===" << std::endl;
-            Image tempSegmented = segmentedImage; // Create a copy for histogram
-            std::vector<int> histogram = tempSegmented.create_histogram();
+            //std::cout << "\n=== Histogram Analysis of Original Segmented Image ===" << std::endl;
+            //Image tempSegmented = segmentedImage; // Create a copy for histogram
+            //std::vector<int> histogram = tempSegmented.create_histogram();
             
             // Count non-zero bins and show distribution
-            int non_zero_bins = 0;
-            int total_pixels = segmentedImage.getWidth() * segmentedImage.getHeight();
+            //int non_zero_bins = 0;
+            //int total_pixels = segmentedImage.getWidth() * segmentedImage.getHeight();
             
-            std::cout << "Pixel value distribution:" << std::endl;
+            /*std::cout << "Pixel value distribution:" << std::endl;
             for (int i = 0; i < 256; i++) {
                 if (histogram[i] > 0) {
                     non_zero_bins++;
@@ -153,22 +151,15 @@ int main() {
             } else {
                 std::cout << "Segmentation appears to have " << (non_zero_bins - 1) << " distinct regions" << std::endl;
             }
-            std::cout << "============================================" << std::endl;
+            std::cout << "============================================" << std::endl;*/
 
             // Create enhanced visibility version
             std::cout << "\n=== Creating Enhanced RGB Visibility Version ===" << std::endl;
             Image enhancedSegmentation = enhanceSegmentationVisibility(segmentedImage);
             std::cout << "Enhanced segmentation created as RGB image with color-coded regions." << std::endl;
 
-            // Save the original segmentation result
-            if (segmentedImage.save(outputFilename)) {
-                std::cout << "Successfully saved original segmentation to '" << outputFilename << "'" << std::endl;
-            } else {
-                std::cerr << "Error: Failed to save '" << outputFilename << "'" << std::endl;
-            }
-            
-            // Save the enhanced visibility version as RGB
-            std::string enhancedFilename = "enhanced_" + outputFilename;
+            // Save only the enhanced RGB version
+            std::string enhancedFilename = "enhanced_segmented_" + inputFilename;
             // Change extension to .ppm for RGB format
             size_t enhanced_dot_pos = enhancedFilename.rfind('.');
             if (enhanced_dot_pos != std::string::npos) {
@@ -190,9 +181,7 @@ int main() {
     }
 
     std::cout << "\n--- Batch Processing Complete ---" << std::endl;
-    std::cout << "Check the directory for:" << std::endl;
-    std::cout << "  - 'segmented_*.pgm' files (original greyscale segmentation)" << std::endl;
-    std::cout << "  - 'enhanced_*.ppm' files (RGB color-coded segmentation)" << std::endl;
+    std::cout << "Check the directory for 'enhanced_segmented_*.ppm' files (RGB color-coded segmentation)" << std::endl;
 
     return 0;
 }

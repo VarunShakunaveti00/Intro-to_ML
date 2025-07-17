@@ -440,7 +440,7 @@ Image connectedComponents(const Image &binaryImage) {
 
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
-            if (binaryImage.getGrey(j, i) == 255 && !visited[i][j]) {
+            if (binaryImage.getGrey(j, i) == 0 && !visited[i][j]) {
                 std::queue<std::pair<int, int>> q;
                 q.push({j, i});
                 visited[i][j] = true;
@@ -457,7 +457,7 @@ Image connectedComponents(const Image &binaryImage) {
                         int ny = y + dy[k];
 
                         if (nx >= 0 && nx < width && ny >= 0 && ny < height &&
-                            !visited[ny][nx] && binaryImage.getGrey(nx, ny) == 255) {
+                            !visited[ny][nx] && binaryImage.getGrey(nx, ny) == 0) {
                             visited[ny][nx] = true;
                             q.push({nx, ny});
                         }
@@ -538,7 +538,7 @@ Image watershed(const Image &image, Image &markedImage){
             int nx = x + dx[i];
             int ny = y + dy[i];
             if(nx >= 0 && nx < width && ny >= 0 && ny < height){
-                if(segmentationResult.getGrey(nx, ny) == 0){
+                if(segmentationResult.getGrey(nx, ny) == 255){
                     segmentationResult.setGrey(nx, ny, current_label);
                     q.push({-static_cast<int>(image.getGrey(nx, ny)), nx, ny});
                 }
@@ -562,7 +562,7 @@ Image instanceSegment(Image &image){
     Image watershed_input(width, height, ImageType::GREYSCALE);
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
-            watershed_input.setGrey(j, i, 255-distance_map.getGrey(j, i));
+            watershed_input.setGrey(j, i, distance_map.getGrey(j, i));
         }
     }
     Image segmentedImage = watershed(watershed_input, markedImage);
