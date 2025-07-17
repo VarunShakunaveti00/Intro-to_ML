@@ -135,3 +135,15 @@ bool Image::loadFromFile(const std::string& filename){
     }
     return true;
 }
+
+std::vector<int> Image::create_histogram(){
+    std::vector<int>histogram(256,0);
+    if(type==ImageType::RGB) throw std::logic_error("Histograms are just for greyScale for now");
+    for(int i = 0; i < width; i++){
+        for(int j = 0; j < height; j++){
+            histogram[getGrey(i,j)]++;
+        }
+    }
+    return histogram;
+}
+

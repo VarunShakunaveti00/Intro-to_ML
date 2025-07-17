@@ -1,69 +1,65 @@
 #include <iostream>
 #include <string>
+#include <vector>
 #include <exception>
-#include<vector>
-#include<cmath>
-#include<array>
-#include<algorithm>
 #include "image.hpp"
-#include "filtering.hpp" // This header should contain all your filter declarations
+#include "filtering.hpp"
 
+// Main function to run the segmentation pipeline on a list of images
 int main() {
-    // 1. Load the source image from disk
-    Image originalImage;
-    const std::string inputFilename = "dog.ppm";
+    // 1. List of input images to process
+    const std::vector<std::string> inputFilenames = {
+        "image1.ppm",
+        "image2.ppm",
+        "image3.ppm",
+        "image4.ppm",
+        "image5.ppm"
+    };
 
-    if (!originalImage.loadFromFile(inputFilename)) {
-        std::cerr << "Error: Could not load '" << inputFilename << "'.\n";
-        std::cerr << "Please ensure the file exists in the correct directory and is a valid PPM (P5/P6) file." << std::endl;
-        return 1;
-    }
-    std::cout << "Successfully loaded '" << inputFilename << "'. Beginning tests...\n" << std::endl;
+    std::cout << "--- Starting Batch Instance Segmentation ---" << std::endl;
 
-    // 2. Test all your image processing functions within a try-catch block
-    try {
-        // --- Test Sharpening ---
-        std::cout << "Applying sharpen filter..." << std::endl;
-        Image sharpImage = sharpen(originalImage);
-        sharpImage.save("output_sharpened.ppm");
+    // 2. Loop through each filename and process the image
+    for (const std::string& inputFilename : inputFilenames) {
+        std::cout << "\nProcessing: " << inputFilename << "..." << std::endl;
 
-        // --- Test Edge Detection ---
-        std::cout << "Applying edge detection (Sobel)..." << std::endl;
-        Image edgeImage = detectEdges(originalImage);
-        edgeImage.save("output_edges.pgm"); // Saved as .pgm (grayscale)
+        try {
+            // Load the source image
+            Image originalImage;
+            if (!originalImage.loadFromFile(inputFilename)) {
+                std::cerr << "Error: Could not load '" << inputFilename << "'. Skipping." << std::endl;
+                continue; // Skip to the next image
+            }
 
-        // --- Test Gaussian Blur ---
-        std::cout << "Applying Gaussian blur..." << std::endl;
-        Image gaussianImage = gaussianBlur(originalImage, 15, 5.0);
-        gaussianImage.save("output_gaussian_blur.ppm");
+            // Run the complete instance segmentation pipeline
+            // This single function should call all the necessary steps internally:
+            // threshold -> opening -> distance transform -> find markers -> watershed
+            Image segmentedImage = instanceSegment(originalImage);
 
-        // --- Test Box Blur ---
-        std::cout << "Applying box blur..." << std::endl;
-        Image boxImage = boxFilter(originalImage, 9);
-        boxImage.save("output_box_blur.ppm");
+            // Create a unique output filename for the segmented image
+            // e.g., "image1.ppm" -> "segmented_image1.pgm"
+            std::string outputFilename = "segmented_" + inputFilename;
+            size_t dot_pos = outputFilename.rfind('.');
+            if (dot_pos != std::string::npos) {
+                outputFilename.replace(dot_pos, outputFilename.length(), ".pgm");
+            } else {
+                outputFilename += ".pgm";
+            }
 
-        // --- Test Median Blur ---
-        std::cout << "Applying median blur..." << std::endl;
-        Image medianImage = medianBlur(originalImage, 5);
-        medianImage.save("output_median_blur.ppm");
+            // Save the final result
+            if (segmentedImage.save(outputFilename)) {
+                std::cout << "Successfully saved result to '" << outputFilename << "'" << std::endl;
+            } else {
+                std::cerr << "Error: Failed to save '" << outputFilename << "'" << std::endl;
+            }
 
-        // --- Test Brightness Adjustment ---
-        std::cout << "Adjusting brightness (+50)..." << std::endl;
-        Image brightImage = adjustBrightness(originalImage, 50);
-        brightImage.save("output_bright.ppm");
-
-        // --- Test Contrast Adjustment ---
-        std::cout << "Adjusting contrast (x1.8)..." << std::endl;
-        Image contrastImage = adjustContrast(originalImage, 1.8);
-        contrastImage.save("output_contrast.ppm");
-
-    } catch (const std::exception& e) {
-        std::cerr << "\nAn error occurred during image processing: " << e.what() << std::endl;
-        return 1;
+        } catch (const std::exception& e) {
+            // Catch any errors that occur during the segmentation of a single image
+            std::cerr << "An error occurred while processing " << inputFilename << ": " << e.what() << std::endl;
+        }
     }
 
-    std::cout << "\nAll image processing tests complete." << std::endl;
-    std::cout << "Check the directory for output files (e.g., 'output_sharpened.ppm')." << std::endl;
+    std::cout << "\n--- Batch Processing Complete ---" << std::endl;
+    std::cout << "Check the directory for the 'segmented_*.pgm' files." << std::endl;
 
     return 0;
 }

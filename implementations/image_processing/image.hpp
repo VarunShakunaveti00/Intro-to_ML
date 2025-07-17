@@ -39,5 +39,6 @@ public:
     //setters
     void setGrey(int x, int y, unsigned char grey);
     void setRGB(int x, int y, const std::array<unsigned char, 3> &rgb);
+    std::vector<int>create_histogram();
 };
 
